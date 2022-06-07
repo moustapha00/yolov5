@@ -54,7 +54,7 @@ def crop_xyxy(xyxy, im, gain=1.02, pad=10, BGR=False) :
     clip_coords(xyxy, im.shape)
     crop = im[int(xyxy[0, 1]):int(xyxy[0, 3]), int(xyxy[0, 0]):int(xyxy[0, 2]), ::(1 if BGR else -1)]
     crop = torch.tensor(crop.copy())
-    return crop
+    return crop.permute(2, 0, 1)
 
 
 @torch.no_grad()
