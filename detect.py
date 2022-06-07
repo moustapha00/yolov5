@@ -107,7 +107,6 @@ def run(
     stride_2, names_2, pt_2 = model_2.stride, model_2.names, model_2.pt
     imgsz = check_img_size(imgsz, s=stride)  # check image size
     imgsz_2 = check_img_size(imgsz_2, s=stride_2)  # check image size
-    return
 
     # Dataloader
     dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt)
@@ -117,6 +116,7 @@ def run(
     # Run inference
     model.warmup(imgsz=(1 if pt else bs, 3, *imgsz))  # warmup
     model_2.warmup(imgsz=(1 if pt_2 else bs, 3, *imgsz_2))  # warmup
+    return
 
     dt, seen = [0.0, 0.0, 0.0], 0
     for path, im, im0s, vid_cap, s in dataset:
