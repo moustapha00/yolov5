@@ -189,7 +189,7 @@ def run(
                     if len(im_2.shape) == 3:
                         im_2 = im_2[None]  # expand for batch dim
 
-                    pred_2 = model_2(im_2, augment=augment)
+                    pred_2 = model_2(im_2)
                     # NMS
                     pred_2 = non_max_suppression(pred_2, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
 
