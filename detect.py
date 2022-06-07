@@ -116,7 +116,7 @@ def run(
 
     # Run inference
     model.warmup(imgsz=(1 if pt else bs, 3, *imgsz))  # warmup
-    model_2.warmup(imgsz_2=(1 if pt else bs, 3, *imgsz_2))  # warmup
+    model_2.warmup(imgsz=(1 if pt_2 else bs, 3, *imgsz))  # warmup
 
     dt, seen = [0.0, 0.0, 0.0], 0
     for path, im, im0s, vid_cap, s in dataset:
@@ -202,13 +202,13 @@ def run(
                             # Print results
                             for c in det[:, -1].unique():
                                 n = (det[:, -1] == c).sum()  # detections per class
-                                s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+                                s += f"{n} {names_2[int(c)]}{'s' * (n > 1)}, "  # add to string
 
                             # Write results
                             for *xyxy, conf, cls in reversed(det):
                                 if save_img or save_crop or view_img:  # Add bbox to image
                                     c = int(cls)  # integer class
-                                    label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
+                                    label = None if hide_labels else (names_2[c] if hide_conf else f'{names_2[c]} {conf:.2f}')
                                     annotator.box_label(xyxy, label, color=colors(c, True))
 
 
