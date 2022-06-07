@@ -116,7 +116,6 @@ def run(
 
     # Run inference
     model.warmup(imgsz=(1 if pt else bs, 3, *imgsz))  # warmup
-    model_2.warmup(imgsz=(1 if pt_2 else bs, 3, *imgsz_2))  # warmup
 
     dt, seen = [0.0, 0.0, 0.0], 0
     for path, im, im0s, vid_cap, s in dataset:
@@ -163,6 +162,8 @@ def run(
                 for c in det[:, -1].unique():
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+                
+                model_2.warmup(imgsz=(1 if pt_2 else bs, 3, *imgsz_2))  # warmup
 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
