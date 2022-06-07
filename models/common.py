@@ -300,7 +300,8 @@ class Concat(nn.Module):
         self.d = dimension
 
     def forward(self, x):
-        print(x.size())
+        print(len(x))
+        print(x[0].size())
         print(self.d)
         print(torch.cat(x, self.d).size())
         return torch.cat(x, self.d)
