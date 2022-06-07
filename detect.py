@@ -53,7 +53,8 @@ def crop_xyxy(xyxy, im, gain=1.02, pad=10, BGR=False) :
     xyxy = xywh2xyxy(b).long()
     clip_coords(xyxy, im.shape)
     crop = im[int(xyxy[0, 1]):int(xyxy[0, 3]), int(xyxy[0, 0]):int(xyxy[0, 2]), ::(1 if BGR else -1)]
-    return torch.tensor(crop.copy())
+    crop = torch.tensor(crop.copy())
+    return crop
 
 
 @torch.no_grad()
@@ -118,6 +119,7 @@ def run(
     dt, seen = [0.0, 0.0, 0.0], 0
     for path, im, im0s, vid_cap, s in dataset:
         t1 = time_sync()
+        print(im.size())
         im = torch.from_numpy(im).to(device)
         im = im.half() if model.fp16 else im.float()  # uint8 to fp16/32
         im /= 255  # 0 - 255 to 0.0 - 1.0
@@ -178,6 +180,7 @@ def run(
                     ### New  ###
                     # Run inference on detected windscreen 
                     im_2 =  crop_xyxy(xyxy, im0)
+                    print(im_2.size())
                     im_2 = im_2.to(device)
                     im_2 = im_2.half() if model_2.fp16 else im_2.float()  # uint8 to fp16/32
                     im_2 /= 255  # 0 - 255 to 0.0 - 1.0
