@@ -54,7 +54,7 @@ def crop_xyxy(xyxy, im, gain=1.02, pad=10, BGR=False) :
     clip_coords(xyxy, im.shape)
     crop = im[int(xyxy[0, 1]):int(xyxy[0, 3]), int(xyxy[0, 0]):int(xyxy[0, 2]), ::(1 if BGR else -1)]
     crop = torch.tensor(crop.copy())
-    return crop.permute(2, 1, 0)
+    return crop.permute(2, 0, 1)
 
 
 @torch.no_grad()
@@ -189,7 +189,7 @@ def run(
                     if len(im_2.shape) == 3:
                         im_2 = im_2[None]  # expand for batch dim
 
-                    pred_2 = model_2(im_2, augment=augment, visualize=visualize)
+                    pred_2 = model_2(im_2, augment=augment)
                     # NMS
                     pred_2 = non_max_suppression(pred_2, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
 
