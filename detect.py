@@ -107,7 +107,7 @@ def run(
     stride_2, names_2, pt_2 = model_2.stride, model_2.names, model_2.pt
     imgsz = check_img_size(imgsz, s=stride)  # check image size
     imgsz_2 = check_img_size(imgsz_2, s=stride_2)  # check image size
-
+    return
 
     # Dataloader
     dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt)
