@@ -41,17 +41,30 @@ ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 from models.common import DetectMultiBackend
 from utils.dataloaders import IMG_FORMATS, VID_FORMATS, LoadImages, LoadStreams
 from utils.general import (LOGGER, check_file, check_img_size, check_imshow, check_requirements, colorstr, cv2,
-                           increment_path, non_max_suppression, print_args, scale_coords, strip_optimizer, xyxy2xywh)
+                           increment_path, non_max_suppression, print_args, scale_coords, strip_optimizer, xyxy2xywh, xywh2xyxy, clip_coords)
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, time_sync
+
+
+def crop_xyxy(xyxy, im, gain=1.02, pad=10, BGR=False) : 
+    xyxy = torch.tensor(xyxy).view(-1, 4)
+    b = xyxy2xywh(xyxy)  # boxes
+    b[:, 2:] = b[:, 2:] * gain + pad  # box wh * gain + pad
+    xyxy = xywh2xyxy(b).long()
+    clip_coords(xyxy, im.shape)
+    crop = im[int(xyxy[0, 1]):int(xyxy[0, 3]), int(xyxy[0, 0]):int(xyxy[0, 2]), ::(1 if BGR else -1)]
+    return crop
 
 
 @torch.no_grad()
 def run(
         weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
+        weights_2=ROOT / 'yolov5s.pt',  # model.pt path(s)
         source=ROOT / 'data/images',  # file/dir/URL/glob, 0 for webcam
         data=ROOT / 'data/coco128.yaml',  # dataset.yaml path
+        data_2=ROOT / 'data/coco128.yaml',  # dataset.yaml path
         imgsz=(640, 640),  # inference size (height, width)
+        imgsz_2=(640, 640),  # inference size (height, width)
         conf_thres=0.25,  # confidence threshold
         iou_thres=0.45,  # NMS IOU threshold
         max_det=1000,  # maximum detections per image
@@ -78,9 +91,7 @@ def run(
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
-    is_url = source.lower().startswith(('rtsp://', 'rtmp://', 'http://', 'https://'))
-    webcam = source.isnumeric() or source.endswith('.txt') or (is_url and not is_file)
-    if is_url and is_file:
+    if is_file:
         source = check_file(source)  # download
 
     # Directories
@@ -90,18 +101,16 @@ def run(
     # Load model
     device = select_device(device)
     model = DetectMultiBackend(weights, device=device, dnn=dnn, data=data, fp16=half)
+    model_2 = DetectMultiBackend(weights_2, device=device, dnn=dnn, data=data_2, fp16=half)
     stride, names, pt = model.stride, model.names, model.pt
+    stride_2, names_2, pt_2 = model_2.stride, model_2.names, model_2.pt
     imgsz = check_img_size(imgsz, s=stride)  # check image size
+    imgsz_2 = check_img_size(imgsz_2, s=stride_2)  # check image size
+
 
     # Dataloader
-    if webcam:
-        view_img = check_imshow()
-        cudnn.benchmark = True  # set True to speed up constant image size inference
-        dataset = LoadStreams(source, img_size=imgsz, stride=stride, auto=pt)
-        bs = len(dataset)  # batch_size
-    else:
-        dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt)
-        bs = 1  # batch_size
+    dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt)
+    bs = 1  # batch_size
     vid_path, vid_writer = [None] * bs, [None] * bs
 
     # Run inference
@@ -133,11 +142,7 @@ def run(
         # Process predictions
         for i, det in enumerate(pred):  # per image
             seen += 1
-            if webcam:  # batch_size >= 1
-                p, im0, frame = path[i], im0s[i].copy(), dataset.count
-                s += f'{i}: '
-            else:
-                p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
+            p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
 
             p = Path(p)  # to Path
             save_path = str(save_dir / p.name)  # im.jpg
@@ -169,6 +174,38 @@ def run(
                         annotator.box_label(xyxy, label, color=colors(c, True))
                     if save_crop:
                         save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
+
+                    ### New  ###
+                    # Run inference on detected windscreen 
+                    im_2 =  crop_xyxy(xyxy, im0)
+                    im_2 = im_2.to(device)
+                    im_2 = im_2.half() if model_2.fp16 else im_2.float()  # uint8 to fp16/32
+                    im_2 /= 255  # 0 - 255 to 0.0 - 1.0
+                    if len(im_2.shape) == 3:
+                        im_2 = im_2[None]  # expand for batch dim
+
+                    pred_2 = model_2(im_2, augment=augment, visualize=visualize)
+                    # NMS
+                    pred_2 = non_max_suppression(pred_2, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
+
+                    for i, det in enumerate(pred_2):  # per image
+
+                        if len(det):
+                            # Rescale boxes from img_size to im0 size
+                            det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
+
+                            # Print results
+                            for c in det[:, -1].unique():
+                                n = (det[:, -1] == c).sum()  # detections per class
+                                s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+
+                            # Write results
+                            for *xyxy, conf, cls in reversed(det):
+                                if save_img or save_crop or view_img:  # Add bbox to image
+                                    c = int(cls)  # integer class
+                                    label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}')
+                                    annotator.box_label(xyxy, label, color=colors(c, True))
+
 
             # Stream results
             im0 = annotator.result()
