@@ -116,7 +116,7 @@ def run(
 
     # Run inference
     model.warmup(imgsz=(1 if pt else bs, 3, *imgsz))  # warmup
-    model_2.warmup(imgsz=(1 if pt_2 else bs, 3, *imgsz))  # warmup
+    model_2.warmup(imgsz=(1 if pt_2 else bs, 3, *imgsz_2))  # warmup
 
     dt, seen = [0.0, 0.0, 0.0], 0
     for path, im, im0s, vid_cap, s in dataset:
@@ -189,7 +189,7 @@ def run(
                     if len(im_2.shape) == 3:
                         im_2 = im_2[None]  # expand for batch dim
 
-                    pred_2 = model_2(im_2)
+                    pred_2 = model_2(im_2, augment=augment, visualize=visualize)
                     # NMS
                     pred_2 = non_max_suppression(pred_2, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
 
