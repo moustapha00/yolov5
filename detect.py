@@ -45,6 +45,7 @@ from utils.general import (LOGGER, check_file, check_img_size, check_imshow, che
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, time_sync
 from utils.augmentations import letterbox
+import numpy as np
 
 
 def crop_xyxy(xyxy, im, gain=1.02, pad=10, BGR=False) : 
@@ -54,8 +55,8 @@ def crop_xyxy(xyxy, im, gain=1.02, pad=10, BGR=False) :
     xyxy = xywh2xyxy(b).long()
     clip_coords(xyxy, im.shape)
     crop = im[int(xyxy[0, 1]):int(xyxy[0, 3]), int(xyxy[0, 0]):int(xyxy[0, 2]), ::(1 if BGR else -1)]
-    crop = torch.tensor(crop.copy())
-    return crop.permute(2, 0, 1)
+    #crop = torch.tensor(crop.copy()).permute(2, 0, 1)
+    return crop
 
 
 @torch.no_grad()
@@ -184,7 +185,10 @@ def run(
                     im_2 =  crop_xyxy(xyxy, im0)
                     # Padded resize
                     im_2 = letterbox(im_2, imgsz_2, stride=stride_2)[0]
-                    im_2 = im = torch.from_numpy(im_2).to(device)
+                    # Convert
+                    im_2 = im_2.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
+                    im_2 = np.ascontiguousarray(im_2)
+                    im_2 = torch.from_numpy(im_2).to(device)
                     print(im_2.size())
                     im_2 = im_2.half() if model_2.fp16 else im_2.float()  # uint8 to fp16/32
                     im_2 /= 255  # 0 - 255 to 0.0 - 1.0
