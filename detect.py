@@ -201,12 +201,11 @@ def run(
                         for j, det_2 in enumerate(pred_2):  # per image
                             if len(det_2):
                                 # Rescale boxes from img_size to im0 size
-                                #return
                                 det_2[:, :4] = scale_coords(im_2.shape[2:], det_2[:, :4], im_2_0.shape).round()
+                                det_2[:, 0] += torch.tensor(xyxy).to(device)[0]
+                                det_2[:, 1] += torch.tensor(xyxy).to(device)[1]
                                 det_2[:, 2] += torch.tensor(xyxy).to(device)[0]
-                                #det_2[:, 3] += torch.tensor(xyxy).to(device)[1]
-                                #det_2[:, 0] += torch.tensor(xyxy).to(device)[3]
-                                #det_2[:, 1] += torch.tensor(xyxy).to(device)[2]
+                                det_2[:, 3] += torch.tensor(xyxy).to(device)[1]
                                 # Print results
                                 for c in det_2[:, -1].unique():
                                     n = (det_2[:, -1] == c).sum()  # detections per class
