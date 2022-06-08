@@ -198,24 +198,26 @@ def run(
                         pred_2 = model_2(im_2, augment=augment, visualize=visualize)
                         # NMS
                         pred_2 = non_max_suppression(pred_2, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
-
-                        for i, det in enumerate(pred_2):  # per image
-
-                            if len(det):
+                        for j, det_2 in enumerate(pred_2):  # per image
+                            if len(det_2):
                                 # Rescale boxes from img_size to im0 size
-                                det[:, :4] = scale_coords(im_2.shape[2:], det[:, :4], im_2_0.shape).round()
-
+                                #return
+                                det_2[:, :4] = scale_coords(im_2.shape[2:], det_2[:, :4], im_2_0.shape).round()
+                                det_2[:, 2] += torch.tensor(xyxy).to(device)[0]
+                                #det_2[:, 3] += torch.tensor(xyxy).to(device)[1]
+                                #det_2[:, 0] += torch.tensor(xyxy).to(device)[3]
+                                #det_2[:, 1] += torch.tensor(xyxy).to(device)[2]
                                 # Print results
-                                for c in det[:, -1].unique():
-                                    n = (det[:, -1] == c).sum()  # detections per class
+                                for c in det_2[:, -1].unique():
+                                    n = (det_2[:, -1] == c).sum()  # detections per class
                                     s += f"{n} {names_2[int(c)]}{'s' * (n > 1)}, "  # add to string
 
                                 # Write results
-                                for *xyxy, conf, cls in reversed(det):
+                                for *xyxy_2, conf, cls in reversed(det_2):
                                     if save_img or save_crop or view_img:  # Add bbox to image
                                         c = int(cls)  # integer class
                                         label = None if hide_labels else (names_2[c] if hide_conf else f'{names_2[c]} {conf:.2f}')
-                                        annotator.box_label(xyxy, label, color=colors(c, True))
+                                        annotator.box_label(xyxy_2, label, color=colors(c+3, True))
 
 
             # Stream results
