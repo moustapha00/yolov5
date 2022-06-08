@@ -182,40 +182,41 @@ def run(
 
                     ### New  ###
                     # Run inference on detected windscreen 
-                    im_2 =  crop_xyxy(xyxy, im0)
-                    # Padded resize
-                    im_2 = letterbox(im_2, imgsz_2, stride=stride_2)[0]
-                    # Convert
-                    im_2 = im_2.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
-                    im_2 = np.ascontiguousarray(im_2)
-                    im_2 = torch.from_numpy(im_2).to(device)
-                    print(im_2.size())
-                    im_2 = im_2.half() if model_2.fp16 else im_2.float()  # uint8 to fp16/32
-                    im_2 /= 255  # 0 - 255 to 0.0 - 1.0
-                    if len(im_2.shape) == 3:
-                        im_2 = im_2[None]  # expand for batch dim
+                    if names[c] == 'windscreen' :
+                        im_2 =  crop_xyxy(xyxy, im0)
+                        # Padded resize
+                        im_2 = letterbox(im_2, imgsz_2, stride=stride_2)[0]
+                        # Convert
+                        im_2 = im_2.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
+                        im_2 = np.ascontiguousarray(im_2)
+                        im_2 = torch.from_numpy(im_2).to(device)
+                        print(im_2.size())
+                        im_2 = im_2.half() if model_2.fp16 else im_2.float()  # uint8 to fp16/32
+                        im_2 /= 255  # 0 - 255 to 0.0 - 1.0
+                        if len(im_2.shape) == 3:
+                            im_2 = im_2[None]  # expand for batch dim
 
-                    pred_2 = model_2(im_2, augment=augment, visualize=visualize)
-                    # NMS
-                    pred_2 = non_max_suppression(pred_2, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
+                        pred_2 = model_2(im_2, augment=augment, visualize=visualize)
+                        # NMS
+                        pred_2 = non_max_suppression(pred_2, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
 
-                    for i, det in enumerate(pred_2):  # per image
+                        for i, det in enumerate(pred_2):  # per image
 
-                        if len(det):
-                            # Rescale boxes from img_size to im0 size
-                            det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
+                            if len(det):
+                                # Rescale boxes from img_size to im0 size
+                                det[:, :4] = scale_coords(im_2.shape[2:], det[:, :4], im0.shape).round()
 
-                            # Print results
-                            for c in det[:, -1].unique():
-                                n = (det[:, -1] == c).sum()  # detections per class
-                                s += f"{n} {names_2[int(c)]}{'s' * (n > 1)}, "  # add to string
+                                # Print results
+                                for c in det[:, -1].unique():
+                                    n = (det[:, -1] == c).sum()  # detections per class
+                                    s += f"{n} {names_2[int(c)]}{'s' * (n > 1)}, "  # add to string
 
-                            # Write results
-                            for *xyxy, conf, cls in reversed(det):
-                                if save_img or save_crop or view_img:  # Add bbox to image
-                                    c = int(cls)  # integer class
-                                    label = None if hide_labels else (names_2[c] if hide_conf else f'{names_2[c]} {conf:.2f}')
-                                    annotator.box_label(xyxy, label, color=colors(c, True))
+                                # Write results
+                                for *xyxy, conf, cls in reversed(det):
+                                    if save_img or save_crop or view_img:  # Add bbox to image
+                                        c = int(cls)  # integer class
+                                        label = None if hide_labels else (names_2[c] if hide_conf else f'{names_2[c]} {conf:.2f}')
+                                        annotator.box_label(xyxy, label, color=colors(c, True))
 
 
             # Stream results
