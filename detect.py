@@ -44,6 +44,7 @@ from utils.general import (LOGGER, check_file, check_img_size, check_imshow, che
                            increment_path, non_max_suppression, print_args, scale_coords, strip_optimizer, xyxy2xywh, xywh2xyxy, clip_coords)
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, time_sync
+from utils.augmentations import letterbox
 
 
 def crop_xyxy(xyxy, im, gain=1.02, pad=10, BGR=False) : 
@@ -105,8 +106,8 @@ def run(
     model_2 = DetectMultiBackend(weights_2, device=device, dnn=dnn, data=data_2, fp16=half)
     stride, names, pt = model.stride, model.names, model.pt
     stride_2, names_2, pt_2 = model_2.stride, model_2.names, model_2.pt
-    imgsz = check_img_size(imgsz, s=stride)  # check image size
     imgsz_2 = check_img_size(imgsz_2, s=stride_2)  # check image size
+    imgsz = check_img_size(imgsz, s=stride)  # check image size
 
     # Dataloader
     dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt)
@@ -116,7 +117,6 @@ def run(
     # Run inference
     model.warmup(imgsz=(1 if pt else bs, 3, *imgsz))  # warmup
     model_2.warmup(imgsz=(1 if pt_2 else bs, 3, *imgsz_2))  # warmup
-    return
 
     dt, seen = [0.0, 0.0, 0.0], 0
     for path, im, im0s, vid_cap, s in dataset:
@@ -182,8 +182,10 @@ def run(
                     ### New  ###
                     # Run inference on detected windscreen 
                     im_2 =  crop_xyxy(xyxy, im0)
+                    # Padded resize
+                    im_2 = letterbox(im_2, imgsz_2, stride=stride_2)[0]
+                    im_2 = im = torch.from_numpy(im_2).to(device)
                     print(im_2.size())
-                    im_2 = im_2.to(device)
                     im_2 = im_2.half() if model_2.fp16 else im_2.float()  # uint8 to fp16/32
                     im_2 /= 255  # 0 - 255 to 0.0 - 1.0
                     if len(im_2.shape) == 3:
@@ -283,6 +285,7 @@ def parse_opt():
     parser.add_argument('--dnn', action='store_true', help='use OpenCV DNN for ONNX inference')
     opt = parser.parse_args()
     opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
+    opt.imgsz_2 *= 2 if len(opt.imgsz_2) == 1 else 1  # expand
     print_args(vars(opt))
     return opt
 
