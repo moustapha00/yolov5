@@ -122,7 +122,6 @@ def run(
     dt, seen = [0.0, 0.0, 0.0], 0
     for path, im, im0s, vid_cap, s in dataset:
         t1 = time_sync()
-        print(torch.from_numpy(im).size())
         im = torch.from_numpy(im).to(device)
         im = im.half() if model.fp16 else im.float()  # uint8 to fp16/32
         im /= 255  # 0 - 255 to 0.0 - 1.0
@@ -186,12 +185,11 @@ def run(
                         im_2 =  crop_xyxy(xyxy, im0)
                         im_2_0 = im_2.copy()
                         # Padded resize
-                        im_2 = letterbox(im_2, imgsz_2, stride=stride_2)[0]
+                        im_2 = letterbox(im_2_0, imgsz_2, stride=stride_2)[0]
                         # Convert
                         im_2 = im_2.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
                         im_2 = np.ascontiguousarray(im_2)
                         im_2 = torch.from_numpy(im_2).to(device)
-                        print(im_2.size())
                         im_2 = im_2.half() if model_2.fp16 else im_2.float()  # uint8 to fp16/32
                         im_2 /= 255  # 0 - 255 to 0.0 - 1.0
                         if len(im_2.shape) == 3:
