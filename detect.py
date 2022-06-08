@@ -184,6 +184,7 @@ def run(
                     # Run inference on detected windscreen 
                     if names[c] == 'windscreen' :
                         im_2 =  crop_xyxy(xyxy, im0)
+                        im_2_0 = im_2.copy()
                         # Padded resize
                         im_2 = letterbox(im_2, imgsz_2, stride=stride_2)[0]
                         # Convert
@@ -204,7 +205,7 @@ def run(
 
                             if len(det):
                                 # Rescale boxes from img_size to im0 size
-                                det[:, :4] = scale_coords(im_2.shape[2:], det[:, :4], im0.shape).round()
+                                det[:, :4] = scale_coords(im_2.shape[2:], det[:, :4], im_2_0.shape).round()
 
                                 # Print results
                                 for c in det[:, -1].unique():
